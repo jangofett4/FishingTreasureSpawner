@@ -187,76 +187,81 @@ namespace FishingTreasureSpawner
 
             if (e.Button == Config.FZ0Keymap)
             {
-                var playerFishingRod = CheckAndGetPlayerFishingRod();
+                CheckAndGetPlayerFishingRod(out FishingRod playerFishingRod);
                 SetClearWaterDistance(playerFishingRod, 0);
                 playerFishingRod.openTreasureMenuEndFunction(0);
             }
             else if (e.Button == Config.FZ1Keymap)
             {
-                var playerFishingRod = CheckAndGetPlayerFishingRod();
+                CheckAndGetPlayerFishingRod(out FishingRod playerFishingRod);
                 SetClearWaterDistance(playerFishingRod, 1);
                 playerFishingRod.openTreasureMenuEndFunction(0);
             }
             else if (e.Button == Config.FZ2Keymap)
             {
-                var playerFishingRod = CheckAndGetPlayerFishingRod();
+                CheckAndGetPlayerFishingRod(out FishingRod playerFishingRod);
                 SetClearWaterDistance(playerFishingRod, 2);
                 playerFishingRod.openTreasureMenuEndFunction(0);
             }
             else if (e.Button == Config.FZ3Keymap)
             {
-                var playerFishingRod = CheckAndGetPlayerFishingRod();
+                CheckAndGetPlayerFishingRod(out FishingRod playerFishingRod);
                 SetClearWaterDistance(playerFishingRod, 3);
                 playerFishingRod.openTreasureMenuEndFunction(0);
             }
             else if (e.Button == Config.FZ4Keymap)
             {
-                var playerFishingRod = CheckAndGetPlayerFishingRod();
+                CheckAndGetPlayerFishingRod(out FishingRod playerFishingRod);
                 SetClearWaterDistance(playerFishingRod, 4);
                 playerFishingRod.openTreasureMenuEndFunction(0);
             }
             else if (e.Button == Config.FZ5Keymap)
             {
-                var playerFishingRod = CheckAndGetPlayerFishingRod();
+                CheckAndGetPlayerFishingRod(out FishingRod playerFishingRod);
                 SetClearWaterDistance(playerFishingRod, 5);
                 playerFishingRod.openTreasureMenuEndFunction(0);
             }
             else if (e.Button == Config.FZ6Keymap)
             {
-                var playerFishingRod = CheckAndGetPlayerFishingRod();
+                CheckAndGetPlayerFishingRod(out FishingRod playerFishingRod);
                 SetClearWaterDistance(playerFishingRod, 6);
                 playerFishingRod.openTreasureMenuEndFunction(0);
             }
             else if (e.Button == Config.FZ7Keymap)
             {
-                var playerFishingRod = CheckAndGetPlayerFishingRod();
+                CheckAndGetPlayerFishingRod(out FishingRod playerFishingRod);
                 SetClearWaterDistance(playerFishingRod, 7);
                 playerFishingRod.openTreasureMenuEndFunction(0);
             }
             else if (e.Button == Config.FZ8Keymap)
             {
-                var playerFishingRod = CheckAndGetPlayerFishingRod();
+                CheckAndGetPlayerFishingRod(out FishingRod playerFishingRod);
                 SetClearWaterDistance(playerFishingRod, 8);
                 playerFishingRod.openTreasureMenuEndFunction(0);
             }
             else if (e.Button == Config.FZ9Keymap)
             {
-                var playerFishingRod = CheckAndGetPlayerFishingRod();
+                CheckAndGetPlayerFishingRod(out FishingRod playerFishingRod);
                 SetClearWaterDistance(playerFishingRod, 9);
                 playerFishingRod.openTreasureMenuEndFunction(0);
             }
             else if (Config.BruteForceEnabled && e.Button == Config.BruteForceKey)
             {
                 if (!Config.BruteForceAllow) // Something was wrong with previous configuration?
+                {
+                    Game1.chatBox.addInfoMessage($"Cannot brute force with current configuration, change the configuration and try again.");
                     Monitor.Log($"Cannot brute force with current configuration, change the configuration and try again.", LogLevel.Warn);
+                }
                 else
                 {
+                    Game1.chatBox.addInfoMessage($"Brute forcing until treasure chest contains '*{Config.BruteForceItem}*' ({Config.BruteForceTries} loops)");
                     Monitor.Log($"Brute forcing until treasure chest contains '*{Config.BruteForceItem}*' ({Config.BruteForceTries} loops)", LogLevel.Debug);
                     int tries = 0;
                     long totalTries = 0;
                     int min = int.MaxValue;
                     int max = int.MinValue;
                     string foundItemName = string.Empty;
+                    double lastAvg = 0;
 
                     int lockupPreventionCount = 0;      // How many times did the system prevent lockups
                     bool shouldPreventLockup = true;    // Should the system try and prevent lockups
@@ -265,7 +270,12 @@ namespace FishingTreasureSpawner
                     var report = new StringBuilder();
                     report.AppendLine("Tries, Average, Item");
 
-                    var playerFishingRod = CheckAndGetPlayerFishingRod();
+                    if (!CheckAndGetPlayerFishingRod(out FishingRod playerFishingRod))
+                    {
+                        Game1.chatBox.addInfoMessage("Player didn't have a fishing rod, gave a Iridium Rod. Please trigger the brute forcing operation again using the hotkey.");
+                        return;
+                    }
+
                     SetClearWaterDistance(playerFishingRod, Config.BruteForceFishingZone);
 
                     for (int t = 0; t < Config.BruteForceTries && !lockupKill; t++)
@@ -293,6 +303,7 @@ namespace FishingTreasureSpawner
                                 // If this is the third possible lockup, kill the loop so we dont crash the game
                                 if (lockupPreventionCount >= 3)
                                 {
+                                    Game1.chatBox.addErrorMessage($"Brute forcer prevented a possible lockup, check the configuration and be sure item exists and is in specified brute force fishing zone");
                                     Monitor.Log($"Brute forcer prevented a possible lockup, check the configuration and be sure item exists and is in specified brute force fishing zone", LogLevel.Alert);
                                     lockupKill = true;              // Stop the loop
                                     Config.BruteForceAllow = false; // Prevent this configuration from being brute forced until its changed
@@ -307,7 +318,8 @@ namespace FishingTreasureSpawner
                         if (!lockupKill)
                         {
                             totalTries += tries;
-                            report.AppendLine($"{tries}, {totalTries / (double)t}, { foundItemName }");
+                            lastAvg = totalTries / (double)t;
+                            report.AppendLine($"{tries}, {lastAvg}, { foundItemName }");
                             if (tries < min)
                                 min = tries;
                             if (tries > max)
@@ -320,10 +332,11 @@ namespace FishingTreasureSpawner
                     if (!Config.BruteForceAllow)
                         File.WriteAllText(Config.BruteForceReportFile, "Brute forcing aborted abruptly due to lockup prevention, check the configuration and be sure item name and fishing zone is correct.");
                     else
+                    {
+                        Game1.chatBox.addInfoMessage($"Brute forcing finished [Min: {min}, Max: {max}, Avg: {lastAvg}], report written to {Config.BruteForceReportFile}");
+                        Monitor.Log($"Brute forcing finished [Min: {min}, Max: {max}, Avg: {lastAvg}], report written to {Config.BruteForceReportFile}", LogLevel.Info);
                         File.WriteAllText(Config.BruteForceReportFile, report.ToString());
-
-                    Monitor.Log($"Brute forcing finished, log written to {Config.BruteForceReportFile}", LogLevel.Info);
-                    
+                    }
                 }
             }
         }
@@ -333,7 +346,7 @@ namespace FishingTreasureSpawner
         /// This functions checks if player has a fishing rod, if they don't gives them one and returns the fishing rod object reference.
         /// </summary>
         /// <returns></returns>
-        public FishingRod CheckAndGetPlayerFishingRod()
+        public bool CheckAndGetPlayerFishingRod(out FishingRod rod)
         {
             var playerFishingRod = Game1.player.Items.FirstOrDefault(x => x is FishingRod);
             if (playerFishingRod == null)
@@ -341,8 +354,12 @@ namespace FishingTreasureSpawner
                 Monitor.Log("Player doesn't have a fishing rod, giving one.", LogLevel.Debug);
                 playerFishingRod = new FishingRod(3);
                 Game1.player.addItemToInventory(playerFishingRod);
+                rod = ((FishingRod)playerFishingRod);
+                return false;
             }
-            return ((FishingRod)playerFishingRod);
+
+            rod = ((FishingRod)playerFishingRod);
+            return true;
         }
 
         /// <summary>
